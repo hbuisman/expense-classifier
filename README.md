@@ -3,6 +3,7 @@ Toying around with ML to do expense classification.
 
 Dependencies:
  * [Camelot](https://camelot-py.readthedocs.io/en/master/user/install.html#install)
+ * [matplotlib] pip3 install matplotlib --user
 
 
 TODO:

@@ -1,10 +1,20 @@
 import camelot
 import re
+from collections import defaultdict
 from dateutil import parser
 import typing
+from typing import Dict
 import pandas
 from datetime import date
 from enum import Enum
+from matplotlib import pyplot as plt
+import numpy as np
+
+from os import listdir
+from os.path import isfile, join
+ 
+ 
+        
 
 # TODO(hylke): Write unit test based on one page of example pdf.
 
@@ -63,11 +73,12 @@ def ParsePayments(filename: str) -> list[Payment]:
             if len(row) != 4:
                 continue
             print(idx, "::", row)
+            accounting_date = MaybeParseDate(row[0])
             purchase_date = MaybeParseDate(row[1])
-            if parsing_state == ParsingState.LOOK_FOR_PAYMENT and purchase_date:
+            if parsing_state == ParsingState.LOOK_FOR_PAYMENT and purchase_date and accounting_date:
                 payment.purchase_date = purchase_date
                 payment.description = ParseDescription(row[2])
-                payment.amount = float(row[3])
+                payment.amount = float(row[3].replace("'", ""))
                 parsing_state = ParsingState.LOOK_FOR_CATEGORY
             elif parsing_state == ParsingState.LOOK_FOR_CATEGORY:
                 payment.category = row[2]
@@ -76,10 +87,40 @@ def ParsePayments(filename: str) -> list[Payment]:
     return payments
                 
 
+def GroupByCategory(payments: list[Payment]) -> Dict[str, float]:
+    grouping = defaultdict(float)
+    for p in payments:
+        # TODO: Fix for negatives.
+        if p.amount > 0:
+            grouping[p.category] += p.amount
+    return grouping
 
-        
-payments = ParsePayments('/Users/hylke/Downloads/creditcardstatement.pdf')
+def PlotPaymentGrouping(grouping: defaultdict[float]):
+    sorted_grouping = {k: v for k, v in sorted(grouping.items(), key=lambda item: item[1])}
+    data = sorted_grouping.values()
+    labels = sorted_grouping.keys()
+    
+    # Creating plot
+    fig = plt.figure(figsize =(10, 7))
+    plt.pie(data, labels = labels, autopct = '%1.1f%%')
+    
+    # show plot
+    plt.show()
+
+def GetCreditCardStatements(directory: str) -> list[str]:
+    onlyfiles = [join(directory, f) for f in listdir(directory) if isfile(join(directory, f))]
+    return onlyfiles
+
+files = GetCreditCardStatements('/Users/hylke/Documents/cc_statements/')
+
+payments: list[Payment] = []
+for f in files:
+    payments.extend(ParsePayments(f))
 print("Payments parsed: ", len(payments))
+grouping = GroupByCategory(payments)
+
+print(grouping)
+PlotPaymentGrouping(grouping)
                 
     
     
